@@ -1,13 +1,36 @@
 from django.shortcuts import render, redirect
 from django.contrib.auth.models import User, auth
 from django.contrib import messages
-
+from .models import Movie
+from django.contrib.auth.decorators import login_required
 # Create your views here.
 
 def index(request):
-    return render(request, 'index.html')
+    movies = Movie.objects.all()
+
+    context={
+        'movies':movies,
+    }
+    return render(request, 'index.html',context)
+
+def movies(request):
+    pass
+
+
 
 def login(request):
+    if request.method == 'POST':
+        username = request.POST['username']
+        password = request.POST['password']
+
+        user = auth.authenticate(username=username, password=password)
+
+        if user is not None:
+            auth.login(request,user)
+            return redirect('/')
+        else:
+            messages.info(request, 'Credentials Invalid')
+            return redirect('login')
     return render(request, 'login.html')
 
 def signup(request):
@@ -24,6 +47,15 @@ def signup(request):
             elif User.objects.filter(username=username).exists():
                 messages.info(request, 'Username Taken')
                 return redirect('signup')
+
+            else:
+                user = User.objects.create_user(username=username, email=email, password=password)
+                user.save()
+
+                #log user in
+                user_login = auth.authenticate(username=username, password=password)
+                auth.login(request,user_login)
+                return redirect('/')
         else:
             messages.info(request, 'Password Not Matching')
             return redirect('signup')
